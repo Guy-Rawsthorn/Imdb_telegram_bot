@@ -6,21 +6,50 @@ import smtplib
 import telegram
 from telegram.ext import *
 from telegram.ext.dispatcher import run_async
-import telepot 
+import telepot
 
 bot = telepot.Bot("653252548:AAGMGOpwXgNxd9QkjY34XCa5oXBtTNNSdw")
 
 def start(bot, update):
-    key = ['/start','/help','/movie_list']
+    key = ['/start','/help','/movie_list','/new_releases']
     custom_keyboard = [[item] for item in key]
     reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
     bot.sendMessage(chat_id=update.message.chat_id, text="bot started! Please give me a movie name or choose ;)", reply_markup=reply_markup)
 
 def back2mainlist(bot, update):
-    key = ['/start','/help','/movie_list']
+    key = ['/start','/help','/movie_list','/new_releases']
     custom_keyboard = [[item] for item in key]
     reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
     bot.sendMessage(chat_id=update.message.chat_id, text="Please give me a movie name or choose ;)", reply_markup=reply_markup)
+
+def new_releases(bot, update):
+    key = []
+    page = requests.get("https://www.imdb.com/movies-coming-soon/?ref_=nv_mv_cs")
+    print(page.status_code)
+    soup = bs4.BeautifulSoup(page.content, "lxml")
+    td_tag = soup.findAll("td", {"class": "overview-top"})
+    for x in td_tag:
+        new_h4 = x.findAll("h4")
+        for tag in new_h4:
+            print(new_h4)
+    # for tag in link:
+    #     link1 = tag.findAll("h4")
+    #
+    # print(link1)
+    # count = 0
+    # while count < 5:
+    #     print(link1[count].text)
+    #     count +=1
+    # for li in soup.findAll('li'):
+        # x = 0
+        # print(li[0].text)
+        # key.append(li[x].text)
+        # print(key)
+
+    custom_keyboard = [[item] for item in key]
+    reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
+    bot.sendMessage(chat_id=update.message.chat_id, text="NEW RELEASES SHOULD BE DISPLAYED", reply_markup=reply_markup)
+    updater.start_polling()
 
 @run_async
 def movie_name(bot, update):
@@ -46,10 +75,12 @@ def movie_name(bot, update):
         conn.close()
         name = user_msg.split(' ')
         name = '+'.join(name)
-        msg_text = "Movie Name: "+user_msg
+        # msg_text = "Movie Name: "+user_msg
         page = requests.get("http://www.imdb.com/find?ref_=nv_sr_fn&q="+name+"&s=all")
         soup = bs4.BeautifulSoup(page.content, "lxml")
         link = soup.findAll("td","result_text")
+        msg_text = ("Movie name : %s " %link[0].text)
+
         know = requests.get("http://www.imdb.com/"+link[0].a['href'])
         soup = bs4.BeautifulSoup(know.content, "lxml")
         story_text = soup.find('div', "inline canwrap")
@@ -126,6 +157,7 @@ def movie_list(bot, update):
     bot.sendMessage(chat_id=update.message.chat_id, text="Please enter a name...", reply_markup=reply_markup)
     updater.start_polling()
 
+
 def help(bot, update):
     bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
     update.message.reply_text("/start : start the bot\n/movie_list : get the list of movies users have been searched\n/feedback : leave a feedback for the developer\n/stop : stop the bot")
@@ -147,6 +179,7 @@ dispatcher = updater.dispatcher
 dispatcher.add_handler(CommandHandler('start', start))
 dispatcher.add_handler(CommandHandler('back', back2mainlist))
 dispatcher.add_handler(CommandHandler('movie_list', movie_list))
+dispatcher.add_handler(CommandHandler('new_releases', new_releases))
 dispatcher.add_handler(CommandHandler('help', help))
 dispatcher.add_handler(CommandHandler('feedback', feedback, pass_args=True))
 dispatcher.add_handler(MessageHandler(Filters.text, movie_name))
